@@ -243,6 +243,47 @@
     }
   }
 
+  class Game {
+    #view;
+    #paddle;
+    #ball;
+    #scoreboard;
+    constructor(view, paddle, ball, scoreboard) {
+      this.#view = view;
+      this.#paddle = paddle;
+      this.#ball = ball;
+      this.#scoreboard = scoreboard;
+    }
+
+    start() {
+      this.#ball.move();
+      this.#ball.isHittingBorder(this.#view);
+    }
+
+    increaseComplexity() {
+      if (this.#paddle.isCollidingWith(this.#ball)) {
+        this.#scoreboard.points++;
+
+        if (scoreboard.points % 5 === 0) {
+          setTimeout(() => this.#ball.increaseSpeed(), 100);
+        }
+      }
+    }
+
+    isGameOver() {
+      return !this.#view.haveWithinBottomBoundary(this.#ball.getInfo());
+    }
+
+    getInfo() {
+      return {
+        ball: this.#ball.getInfo(),
+        view: this.#view.getInfo(),
+        paddle: this.#paddle.getInfo(),
+        scoreboard: this.#scoreboard
+      };
+    }
+  }
+
   const createBall = () => {
     const position = new Position(210, 210);
     const vector = new Vector(-3, 5);
@@ -251,6 +292,50 @@
 
     return ball1;
   };
+
+  const createView = () => {
+    const viewPosition = new Position(200, 200);
+    const viewSize = { width: 600, height: 600 };
+
+    return new View('view', viewPosition, viewSize);
+  };
+
+  const createPaddle = () => {
+    const paddlePosition = new Position(200, 760);
+    const paddleSize = { width: 100, height: 5 };
+    const paddleSpeed = new Vector(20, 0);
+    return new Paddle('p-1', paddlePosition, paddleSize, paddleSpeed);
+  };
+
+  const createScoreboard = scoreboard => {
+    const scoreboardElement = document.createElement('div');
+
+    scoreboardElement.id = scoreboard.id;
+    scoreboardElement.style.fontSize = px(26);
+    scoreboardElement.style.display = 'block';
+    scoreboardElement.style.position = 'absolute';
+    scoreboardElement.style.left = px(1000);
+    scoreboardElement.style.top = px(500);
+
+    scoreboardElement.innerText = scoreboard.points;
+
+    document.querySelector('body').appendChild(scoreboardElement);
+    return scoreboardElement;
+  }
+
+  const gameOverMessage = () => {
+    const message = document.createElement('div');
+
+    message.style.fontSize = px(40);
+    message.style.display = 'block';
+    message.style.position = 'absolute';
+    message.style.left = px(700);
+    message.style.top = px(100);
+
+    message.innerText = 'Game Over.';
+
+    document.querySelector('body').appendChild(message);
+  }
 
   const drawBall = ball => {
     const { id, size: { height }, color, position: { x, y }, } = ball.getInfo();
@@ -267,16 +352,6 @@
 
     document.querySelector('body').appendChild(ballElement);
   };
-
-  const updateBall = ball => {
-    const { id, position: { x, y }, } = ball.getInfo();
-    const ballElement = document.getElementById(id);
-
-    ballElement.style.top = px(y);
-    ballElement.style.left = px(x);
-  };
-
-  const px = value => value + 'px';
 
   const drawView = view => {
     const viewElement = document.createElement('div');
@@ -312,9 +387,24 @@
     document.querySelector('body').appendChild(paddleElement);
   }
 
+  const px = value => value + 'px';
+
+  const updateBall = ({ id, position: { x, y } }) => {
+    // const { id, position: { x, y }, } = ball.getInfo();
+    const ballElement = document.getElementById(id);
+
+    ballElement.style.top = px(y);
+    ballElement.style.left = px(x);
+  };
+
   const updatePaddle = paddle => {
     const paddleElement = document.getElementById(paddle.id);
     paddleElement.style.left = px(paddle.position.x);
+  }
+
+  const updateScoreBoard = scoreboard => {
+    const scoreboardElement = document.getElementById(scoreboard.id);
+    scoreboardElement.innerText = scoreboard.points;
   }
 
   const registerPaddleEvent = (paddle, view) => {
@@ -327,105 +417,6 @@
       }
       updatePaddle(paddle.getInfo());
     });
-  }
-
-  const setMessageElement = () => {
-    const message = document.createElement('div');
-
-    message.style.fontSize = px(40);
-    message.style.display = 'block';
-    message.style.position = 'absolute';
-    message.style.left = px(700);
-    message.style.top = px(100);
-
-    message.innerText = 'Game Over.';
-
-    document.querySelector('body').appendChild(message);
-  }
-
-  const checkIfGameOver = (ball, view, intervalId) => {
-    const ballInfo = ball.getInfo();
-    if (!view.haveWithinBottomBoundary(ballInfo)) {
-      setMessageElement();
-      clearInterval(intervalId);
-    }
-  }
-
-  const createView = () => {
-    const viewPosition = new Position(200, 200);
-    const viewSize = { width: 600, height: 600 };
-
-    return new View('view', viewPosition, viewSize);
-  }
-
-  const createPaddle = () => {
-    const paddlePosition = new Position(200, 760);
-    const paddleSize = { width: 100, height: 5 };
-    const paddleSpeed = new Vector(20, 0);
-    return new Paddle('p-1', paddlePosition, paddleSize, paddleSpeed);
-  }
-
-  const updateScoreBoard = scoreboard => {
-    const scoreboardElement = document.getElementById(scoreboard.id);
-    scoreboardElement.innerText = scoreboard.points;
-  }
-
-  const createScoreboard = scoreboard => {
-    const scoreboardElement = document.createElement('div');
-
-    scoreboardElement.id = scoreboard.id;
-    scoreboardElement.style.fontSize = px(26);
-    scoreboardElement.style.display = 'block';
-    scoreboardElement.style.position = 'absolute';
-    scoreboardElement.style.left = px(1000);
-    scoreboardElement.style.top = px(500);
-
-    scoreboardElement.innerText = scoreboard.points;
-
-    document.querySelector('body').appendChild(scoreboardElement);
-    return scoreboardElement;
-  }
-
-  class Game {
-    #view;
-    #paddle;
-    #ball;
-    #scoreboard;
-    constructor(view, paddle, ball, scoreboard) {
-      this.#view = view;
-      this.#paddle = paddle;
-      this.#ball = ball;
-      this.#scoreboard = scoreboard;
-    }
-
-    start() {
-      this.#ball.move(); // game method  412 - 414
-      // updateBall(this.#ball);
-      this.#ball.isHittingBorder(this.#view);
-    }
-
-    increaseComplexity() {
-      if (this.#paddle.isCollidingWith(this.#ball)) {
-        this.#scoreboard.points++;
-
-        if (scoreboard.points % 5 === 0) {
-          setTimeout(() => this.#ball.increaseSpeed(), 100);
-        }
-      }
-    }
-
-    isGameOver() {
-      this.#view.haveWithinBottomBoundary(ballInfo);
-    }
-
-    gameInfo() {
-      return {
-        ball: this.#ball.getInfo(),
-        view: this.#view.getInfo(),
-        paddle: this.#paddle.getInfo(),
-        scoreboard: this.#scoreboard
-      };
-    }
   }
 
   const main = () => {
@@ -442,22 +433,20 @@
     const scoreboard = { id: 'scoreboard', points: 0 };
     createScoreboard(scoreboard);
 
-    // game method start game
+    const game = new Game(view, paddle, ball, scoreboard);
     const intervalId = setInterval(() => {
-      ball.move(); // game method  412 - 414
-      updateBall(ball);
-      ball.isHittingBorder(view);
+      game.start();
 
-      if (paddle.isCollidingWith(ball)) { // game method increaseSpeedOfBall
-        scoreboard.points++;
+      const { ball: ballInfo, scoreboard } = game.getInfo();
+      updateBall(ballInfo);
 
-        if (scoreboard.points % 2 === 0) {
-          setTimeout(() => ball.increaseSpeed(), 100);
-        }
-      }
+      game.increaseComplexity();
 
-      updateScoreBoard(scoreboard); // game method
-      checkIfGameOver(ball, view, intervalId); // game method
+      updateScoreBoard(scoreboard);
+      if (game.isGameOver()) {
+        clearInterval(intervalId);
+        gameOverMessage();
+      };
     }, 30);
   };
 
