@@ -1,5 +1,63 @@
 (function () {
 
+  class Vector {
+    #dx;
+    #dy;
+    constructor(dx, dy) {
+      this.#dx = dx;
+      this.#dy = dy;
+    }
+
+    modifyX(value) {
+      this.#dx = value;
+    }
+
+    modifyY(value) {
+      this.#dy = value;
+    }
+
+    modify(value) {
+      this.modifyX(value);
+      this.modifyY(value);
+    }
+
+    getInfo() {
+      return { dx: this.#dx, dy: this.#dy };
+    }
+
+    add(vector) {
+      const newDx = this.#dx + vector.#dx;
+      const newDy = this.#dy + vector.#dy;
+      return new Vector(newDx, newDy);
+    }
+  }
+
+  class Position {
+    #x;
+    #y;
+    constructor(x, y) {
+      this.#x = x;
+      this.#y = y;
+    }
+
+    modifyX(value) {
+      this.#x = value;
+    }
+
+    modifyY(value) {
+      this.#y = value;
+    }
+
+    modify(value) {
+      this.modifyX(value);
+      this.modifyY(value);
+    }
+
+    getInfo() {
+      return { x: this.#x, y: this.#y };
+    }
+  }
+
   class Ball {
     #id;
     #position;
@@ -15,43 +73,51 @@
     }
 
     move() {
-      this.#position.x += this.#speed.dx;
-      this.#position.y += this.#speed.dy;
+      const { dx, dy } = this.#speed.getInfo();
+      const { x, y } = this.#position.getInfo();
+
+      this.#position.modifyX(x + dx);
+      this.#position.modifyY(y + dy);
     }
 
     getInfo() {
-      const { x, y } = this.#position;
-      const { dx, dy } = this.#speed;
+      const { height, width } = this.#size;
+
       return {
         id: this.#id,
-        size: this.#size,
+        size: { height, width },
         color: this.#color,
-        position: { x, y },
-        speed: { dx, dy },
+        position: this.#position.getInfo(),
+        speed: this.#speed.getInfo(),
       };
     }
 
     invertXDelta() {
-      this.#speed.dx = -this.#speed.dx;
+      const { dx } = this.#speed.getInfo();
+      this.#speed.modifyX(-dx);
     }
 
     invertYDelta() {
-      this.#speed.dy = -this.#speed.dy
+      const { dy } = this.#speed.getInfo();
+      this.#speed.modifyY(-dy);
     }
 
-    calculateCenter() {
-      const c1 = this.#position.x + this.#size;
-      const c2 = this.#position.y + this.#size;
-      return [c1, c2];
+    increaseSpeed() {
+      const { dx } = this.#speed.getInfo();
+      const sign = dx / Math.abs(dx);
+      this.#speed.modifyX(dx + (sign * 1));
+      console.log(this.#speed.getInfo());
     }
 
-    hitTheBorder(view) {
-      if (!view.isWithinRightBoundary(this.getInfo()) ||
-        !view.isWithinLeftBoundary(this.getInfo())
+    isHittingBorder(view) {
+
+      if (
+        !view.haveWithinRightBoundary(this.getInfo()) ||
+        !view.haveWithinLeftBoundary(this.getInfo())
       ) {
         this.invertXDelta();
       }
-      if (!view.isWithinTopBoundary(this.getInfo())) {
+      if (!view.haveWithinTopBoundary(this.getInfo())) {
         this.invertYDelta();
       }
     }
@@ -72,43 +138,48 @@
     }
 
     moveRightIn(view) {
-      const newPaddleX = this.#position.x + this.#speed.dx;
+      const { x } = this.#position.getInfo();
+      const { dx } = this.#speed.getInfo();
+      const newPaddleX = x + dx;
 
-      if (view.isWithinRightBoundary(this.getInfo()))
-        this.#position.x = newPaddleX;
+      if (view.haveWithinRightBoundary(this.getInfo()))
+        this.#position.modifyX(newPaddleX);
     }
 
     moveLeftIn(view) {
-      const newX = this.#position.x - this.#speed.dx;
+      const { x } = this.#position.getInfo();
+      const { dx } = this.#speed.getInfo();
+      const newPaddleX = x - dx;
 
-      if (view.isWithinLeftBoundary(this.getInfo()))
-        this.#position.x = newX;
+      if (view.haveWithinLeftBoundary(this.getInfo()))
+        this.#position.modifyX(newPaddleX);
     }
 
     getInfo() {
-      const { x, y } = this.#position;
-      const { dx, dy } = this.#speed;
       const { height, width } = this.#size;
+
       return {
         id: this.#id,
-        position: { x, y },
-        speed: { dx, dy },
+        position: this.#position.getInfo(),
+        speed: this.#speed.getInfo(),
         size: { height, width }
       };
     }
 
     isCollidingWith(ball) {
-      const ballInfo = ball.getInfo();
-      const { x: paddleX, y: paddleY } = this.#position;
+      const { x: paddleX, y: paddleY } = this.#position.getInfo();
       const { width: paddleWidth } = this.#size;
+
+      const ballInfo = ball.getInfo();
       const { x: ballX, y: ballY } = ballInfo.position;
       const { height: ballHeight, width: ballWidth } = ballInfo.size;
 
       const midX = (ballX + ballX + ballWidth) / 2;
       const midY = (ballY + ballY + ballHeight + ballHeight) / 2;
 
-      if (midY >= paddleY) {
+      if (midY > paddleY) {
         if (midX >= paddleX && midX <= (paddleX + paddleWidth)) {
+          console.log(ball.getInfo(), this.getInfo());
           ball.invertYDelta();
           return true;
         }
@@ -128,43 +199,56 @@
     }
 
     getInfo() {
-      const { x, y } = this.#position;
       const { height, width } = this.#size;
+
       return {
         id: this.#id,
-        position: { x, y },
+        position: this.#position.getInfo(),
         size: { height, width },
       };
     }
 
-    isWithinRightBoundary(entityInfo) {
+    haveWithinRightBoundary(entityInfo) {
       const { x: entityX } = entityInfo.position;
       const { width: entityWidth } = entityInfo.size;
 
-      return (entityX + entityWidth) < this.#position.x + this.#size.width;
+      const { x: viewX } = this.#position.getInfo();
+      const { width: viewWidth } = this.#size;
+
+      return (entityX + entityWidth) < viewX + viewWidth;
     }
 
-    isWithinLeftBoundary(entityInfo) {
+    haveWithinLeftBoundary(entityInfo) {
       const { x: entityX } = entityInfo.position;
-      return entityX > this.#position.x;
+      const { x: viewX } = this.#position.getInfo();
+
+      return entityX > viewX;
     }
 
-    isWithinTopBoundary(entityInfo) {
+    haveWithinTopBoundary(entityInfo) {
       const { y: entityY } = entityInfo.position;
+      const { y: viewY } = this.#position.getInfo();
 
-      return entityY > this.#position.y;
+      return entityY > viewY;
     }
 
-    isWithinBottomBoundary(entityInfo) {
+    haveWithinBottomBoundary(entityInfo) {
       const { y: entityY } = entityInfo.position;
       const { height: entityHeight } = entityInfo.size;
 
-      return (entityY + entityHeight) < (this.#position.y + this.#size.height);
+      const { y: viewY } = this.#position.getInfo();
+      const { height: viewHeight } = this.#size;
+
+      return (entityY + entityHeight) < (viewY + viewHeight);
     }
   }
 
   const createBall = () => {
-    const ball1 = new Ball('ball-1', { x: 210, y: 210 }, { dx: -3, dy: 5 }, { height: 30, width: 30 }, 'red');
+    const position = new Position(210, 210);
+    const vector = new Vector(-3, 5);
+    const size = { height: 30, width: 30 };
+    const ball1 = new Ball('ball-1', position, vector, size, 'red');
+
     return ball1;
   };
 
@@ -228,20 +312,6 @@
     document.querySelector('body').appendChild(paddleElement);
   }
 
-  const isCrossingBottomBorder = (ball, view) => {
-    const ballInfo = ball.getInfo();
-    const { y: ballY } = ballInfo.position;
-    const { height: ballHeight } = ballInfo.size;
-
-    const viewInfo = view.getInfo();
-    const { y: viewY } = viewInfo.position;
-    const { height: viewHeight } = viewInfo.size;
-
-    if ((ballY + ballHeight) >= (viewY + viewHeight))
-      return true;
-    return false;
-  }
-
   const updatePaddle = paddle => {
     const paddleElement = document.getElementById(paddle.id);
     paddleElement.style.left = px(paddle.position.x);
@@ -274,22 +344,24 @@
   }
 
   const checkIfGameOver = (ball, view, intervalId) => {
-    if (isCrossingBottomBorder(ball, view)) {
+    const ballInfo = ball.getInfo();
+    if (!view.haveWithinBottomBoundary(ballInfo)) {
       setMessageElement();
       clearInterval(intervalId);
     }
   }
 
   const createView = () => {
-    const viewPosition = { x: 200, y: 200 };
+    const viewPosition = new Position(200, 200);
     const viewSize = { width: 600, height: 600 };
+
     return new View('view', viewPosition, viewSize);
   }
 
   const createPaddle = () => {
-    const paddlePosition = { x: 200, y: 760 };
+    const paddlePosition = new Position(200, 760);
     const paddleSize = { width: 100, height: 5 };
-    const paddleSpeed = { dx: 20, dy: 0 };
+    const paddleSpeed = new Vector(20, 0);
     return new Paddle('p-1', paddlePosition, paddleSize, paddleSpeed);
   }
 
@@ -298,7 +370,7 @@
     scoreboardElement.innerText = scoreboard.points;
   }
 
-  const createScoreboard = (scoreboard) => {
+  const createScoreboard = scoreboard => {
     const scoreboardElement = document.createElement('div');
 
     scoreboardElement.id = scoreboard.id;
@@ -312,6 +384,48 @@
 
     document.querySelector('body').appendChild(scoreboardElement);
     return scoreboardElement;
+  }
+
+  class Game {
+    #view;
+    #paddle;
+    #ball;
+    #scoreboard;
+    constructor(view, paddle, ball, scoreboard) {
+      this.#view = view;
+      this.#paddle = paddle;
+      this.#ball = ball;
+      this.#scoreboard = scoreboard;
+    }
+
+    start() {
+      this.#ball.move(); // game method  412 - 414
+      // updateBall(this.#ball);
+      this.#ball.isHittingBorder(this.#view);
+    }
+
+    increaseComplexity() {
+      if (this.#paddle.isCollidingWith(this.#ball)) {
+        this.#scoreboard.points++;
+
+        if (scoreboard.points % 5 === 0) {
+          setTimeout(() => this.#ball.increaseSpeed(), 100);
+        }
+      }
+    }
+
+    isGameOver() {
+      this.#view.haveWithinBottomBoundary(ballInfo);
+    }
+
+    gameInfo() {
+      return {
+        ball: this.#ball.getInfo(),
+        view: this.#view.getInfo(),
+        paddle: this.#paddle.getInfo(),
+        scoreboard: this.#scoreboard
+      };
+    }
   }
 
   const main = () => {
@@ -328,18 +442,22 @@
     const scoreboard = { id: 'scoreboard', points: 0 };
     createScoreboard(scoreboard);
 
+    // game method start game
     const intervalId = setInterval(() => {
-      ball.move();
+      ball.move(); // game method  412 - 414
       updateBall(ball);
-      ball.hitTheBorder(view);
+      ball.isHittingBorder(view);
 
-      if (paddle.isCollidingWith(ball)) {
+      if (paddle.isCollidingWith(ball)) { // game method increaseSpeedOfBall
         scoreboard.points++;
+
+        if (scoreboard.points % 2 === 0) {
+          setTimeout(() => ball.increaseSpeed(), 100);
+        }
       }
 
-      updateScoreBoard(scoreboard);
-
-      checkIfGameOver(ball, view, intervalId);
+      updateScoreBoard(scoreboard); // game method
+      checkIfGameOver(ball, view, intervalId); // game method
     }, 30);
   };
 
