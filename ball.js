@@ -16,7 +16,7 @@
   };
 
   const createPaddle = () => {
-    const paddlePosition = new Position(200, 760);
+    const paddlePosition = new Position(200, 790);
     const paddleSize = { width: 100, height: 5 };
     const paddleSpeed = new Vector(20, 0);
     return new Paddle('p-1', paddlePosition, paddleSize, paddleSpeed);
@@ -32,7 +32,7 @@
     scoreboardElement.style.left = px(1000);
     scoreboardElement.style.top = px(500);
 
-    scoreboardElement.innerText = scoreboard.points;
+    scoreboardElement.innerText = `Points: ${scoreboard.points}`;
 
     document.querySelector('body').appendChild(scoreboardElement);
     return scoreboardElement;
@@ -52,8 +52,8 @@
     document.querySelector('body').appendChild(message);
   }
 
-  const drawBall = ball => {
-    const { id, size: { height }, color, position: { x, y }, } = ball.getInfo();
+  const drawBall = ballInfo => {
+    const { id, size: { height }, color, position: { x, y }, } = ballInfo;
     const ballElement = document.createElement('div');
 
     ballElement.id = id;
@@ -68,10 +68,10 @@
     document.querySelector('body').appendChild(ballElement);
   };
 
-  const drawView = view => {
+  const drawView = viewInfo => {
     const viewElement = document.createElement('div');
 
-    const { position: { x, y }, size: { width, height } } = view.getInfo();
+    const { position: { x, y }, size: { width, height } } = viewInfo;
     viewElement.id = 'view';
     viewElement.style.width = px(width);
     viewElement.style.height = px(height);
@@ -84,9 +84,7 @@
     return viewElement;
   };
 
-  const drawPaddle = paddle => {
-    const paddleInfo = paddle.getInfo();
-
+  const drawPaddle = paddleInfo => {
     const paddleElement = document.createElement('div');
     const { height, width } = paddleInfo.size;
     const { x, y } = paddleInfo.position;
@@ -105,21 +103,20 @@
   const px = value => value + 'px';
 
   const updateBall = ({ id, position: { x, y } }) => {
-    // const { id, position: { x, y }, } = ball.getInfo();
     const ballElement = document.getElementById(id);
 
     ballElement.style.top = px(y);
     ballElement.style.left = px(x);
   };
 
-  const updatePaddle = paddle => {
-    const paddleElement = document.getElementById(paddle.id);
-    paddleElement.style.left = px(paddle.position.x);
+  const updatePaddle = paddleInfo => {
+    const paddleElement = document.getElementById(paddleInfo.id);
+    paddleElement.style.left = px(paddleInfo.position.x);
   }
 
-  const updateScoreBoard = scoreboard => {
-    const scoreboardElement = document.getElementById(scoreboard.id);
-    scoreboardElement.innerText = scoreboard.points;
+  const updateScoreBoard = scoreboardInfo => {
+    const scoreboardElement = document.getElementById(scoreboardInfo.id);
+    scoreboardElement.innerText = `Points: ${scoreboardInfo.points}`;
   }
 
   const registerPaddleEvent = (paddle, view) => {
@@ -134,35 +131,38 @@
     });
   }
 
-  const main = () => {
-    const view = createView();
-    drawView(view);
-
-    const paddle = createPaddle();
-    drawPaddle(paddle);
-    registerPaddleEvent(paddle, view);
-
-    const ball = createBall();
-    drawBall(ball);
-
-    const scoreboard = { id: 'scoreboard', points: 0 };
-    createScoreboard(scoreboard);
-
-    const game = new Game(view, paddle, ball, scoreboard);
+  const playGame = (game) => {
     const intervalId = setInterval(() => {
       game.start();
+      game.updateScore();
 
-      const { ball: ballInfo, scoreboard } = game.getInfo();
-      updateBall(ballInfo);
-
-      game.increaseComplexity();
-
+      const { ball, scoreboard } = game.getInfo();
+      updateBall(ball);
       updateScoreBoard(scoreboard);
+
       if (game.isGameOver()) {
         clearInterval(intervalId);
         gameOverMessage();
       };
-    }, 30);
+    }, 30)
+  }
+
+  const main = () => {
+    const view = createView();
+    drawView(view.getInfo());
+
+    const paddle = createPaddle();
+    drawPaddle(paddle.getInfo());
+    registerPaddleEvent(paddle, view);
+
+    const ball = createBall();
+    drawBall(ball.getInfo());
+
+    const scoreboard = new Scoreboard('scoreboard', 0);
+    createScoreboard(scoreboard.getInfo());
+
+    const game = new Game(view, paddle, ball, scoreboard);
+    playGame(game);
   };
 
   window.onload = main;

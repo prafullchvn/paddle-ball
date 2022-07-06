@@ -7,17 +7,17 @@ class Vector {
     this.#dy = dy;
   }
 
-  modifyX(value) {
+  changeX(value) {
     this.#dx = value;
   }
 
-  modifyY(value) {
+  changeY(value) {
     this.#dy = value;
   }
 
   modify(value) {
-    this.modifyX(value);
-    this.modifyY(value);
+    this.changeX(value);
+    this.changeY(value);
   }
 
   getInfo() {
@@ -39,17 +39,17 @@ class Position {
     this.#y = y;
   }
 
-  modifyX(value) {
+  changeX(value) {
     this.#x = value;
   }
 
-  modifyY(value) {
+  changeY(value) {
     this.#y = value;
   }
 
   modify(value) {
-    this.modifyX(value);
-    this.modifyY(value);
+    this.changeX(value);
+    this.changeY(value);
   }
 
   getInfo() {
@@ -75,8 +75,8 @@ class Ball {
     const { dx, dy } = this.#speed.getInfo();
     const { x, y } = this.#position.getInfo();
 
-    this.#position.modifyX(x + dx);
-    this.#position.modifyY(y + dy);
+    this.#position.changeX(x + dx);
+    this.#position.changeY(y + dy);
   }
 
   getInfo() {
@@ -93,30 +93,30 @@ class Ball {
 
   invertXDelta() {
     const { dx } = this.#speed.getInfo();
-    this.#speed.modifyX(-dx);
+    this.#speed.changeX(-dx);
   }
 
   invertYDelta() {
     const { dy } = this.#speed.getInfo();
-    this.#speed.modifyY(-dy);
+    this.#speed.changeY(-dy);
   }
 
   increaseSpeed() {
     const { dx } = this.#speed.getInfo();
     const sign = dx / Math.abs(dx);
-    this.#speed.modifyX(dx + (sign * 1));
-    console.log(this.#speed.getInfo());
+
+    this.#speed.changeX(dx + (sign * 1));
   }
 
   isHittingBorder(view) {
-
+    const viewInfo = this.getInfo();
     if (
-      !view.haveWithinRightBoundary(this.getInfo()) ||
-      !view.haveWithinLeftBoundary(this.getInfo())
+      !view.haveWithinRightBoundary(viewInfo) ||
+      !view.haveWithinLeftBoundary(viewInfo)
     ) {
       this.invertXDelta();
     }
-    if (!view.haveWithinTopBoundary(this.getInfo())) {
+    if (!view.haveWithinTopBoundary(viewInfo)) {
       this.invertYDelta();
     }
   }
@@ -142,7 +142,7 @@ class Paddle {
     const newPaddleX = x + dx;
 
     if (view.haveWithinRightBoundary(this.getInfo()))
-      this.#position.modifyX(newPaddleX);
+      this.#position.changeX(newPaddleX);
   }
 
   moveLeftIn(view) {
@@ -151,7 +151,7 @@ class Paddle {
     const newPaddleX = x - dx;
 
     if (view.haveWithinLeftBoundary(this.getInfo()))
-      this.#position.modifyX(newPaddleX);
+      this.#position.changeX(newPaddleX);
   }
 
   getInfo() {
@@ -178,7 +178,6 @@ class Paddle {
 
     if (midY > paddleY) {
       if (midX >= paddleX && midX <= (paddleX + paddleWidth)) {
-        console.log(ball.getInfo(), this.getInfo());
         ball.invertYDelta();
         return true;
       }
@@ -242,6 +241,26 @@ class View {
   }
 }
 
+class Scoreboard {
+  #points;
+  #id;
+  constructor(id, points) {
+    this.#id = id;
+    this.#points = points;
+  }
+
+  increaseScore() {
+    this.#points ++;
+  }
+
+  getInfo() {
+    return {
+      id: this.#id,
+      points: this.#points,
+    };
+  }
+}
+
 class Game {
   #view;
   #paddle;
@@ -259,13 +278,17 @@ class Game {
     this.#ball.isHittingBorder(this.#view);
   }
 
-  increaseComplexity() {
-    if (this.#paddle.isCollidingWith(this.#ball)) {
-      this.#scoreboard.points++;
+  #increaseBallSpeed() {
+    const currentScore = this.#scoreboard.getInfo().points;
+    if (currentScore % 5 === 0) {
+      setTimeout(() => this.#ball.increaseSpeed(), 100);
+    }
+  }
 
-      if (scoreboard.points % 5 === 0) {
-        setTimeout(() => this.#ball.increaseSpeed(), 100);
-      }
+  updateScore() {
+    if (this.#paddle.isCollidingWith(this.#ball)) {
+      this.#scoreboard.increaseScore();
+      this.#increaseBallSpeed();
     }
   }
 
@@ -278,7 +301,7 @@ class Game {
       ball: this.#ball.getInfo(),
       view: this.#view.getInfo(),
       paddle: this.#paddle.getInfo(),
-      scoreboard: this.#scoreboard
+      scoreboard: this.#scoreboard.getInfo()
     };
   }
 }
